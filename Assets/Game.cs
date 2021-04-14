@@ -1,19 +1,21 @@
 ﻿using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
-using SFML.Audio;
 using System;
 using System.Collections.Generic;
 using GameJam.Assets;
 using System.Linq;
-using GameJam.Assets.Math;
 using GameJam.Assets.Environment;
+using GameJam.Assets.Audio;
 
 namespace GameJam
 {
     public class Game
     {
         public static Action OnTick;
+        public static Action OnRenderBackground;
+        public static Action<int> OnRenderObjects;
+        public static Action OnRenderUI;
 
         //Window
         public static RenderWindow SFMLWindow;
@@ -22,6 +24,8 @@ namespace GameJam
         public static float scale = 1f;
         public static string windowName = "Dungeon Crawler";
         public static Vector2f screenOffset = new Vector2f(0f, 0f);
+
+        public static int renderLayers = 4;
 
         //Clock
         static Clock gameClock;
@@ -36,6 +40,13 @@ namespace GameJam
 
         public static WorldGenerator worldGenerator;
 
+        static RectangleShape ground = new RectangleShape();
+        public static Random random = new Random();
+        public static FastNoise noise = new FastNoise();
+
+        public static SoundManager soundManager = new SoundManager();
+        public static EnemyManager enemyManager = new EnemyManager();
+
         //Fonts
         static Font font = new Font("Early_GameBoy.ttf");
 
@@ -45,7 +56,11 @@ namespace GameJam
             VideoMode vMode = new VideoMode((uint)width, (uint)height);
             SFMLWindow = new RenderWindow(vMode, windowName);
             SFMLWindow.SetFramerateLimit(144);
+            SFMLWindow.SetMouseCursorVisible(false);
             gameClock = new Clock();
+
+            OnRenderBackground += DrawBackground;
+            OnRenderUI += DrawUI;
 
             //Start the game loop
             GameLoop();
@@ -61,11 +76,13 @@ namespace GameJam
                 gameTime += deltaTime;
 
                 //Update and draw all objects
-                UpdateObjects();
+                OnTick?.Invoke();
+
                 SFMLWindow.Clear();
-                DrawBackground();
-                DrawObjects();
-                DrawUI();
+                    OnRenderBackground?.Invoke();
+                    for(int x = 0; x < renderLayers; x++)
+                        OnRenderObjects?.Invoke(x);
+                    OnRenderUI?.Invoke();
                 SFMLWindow.Display();
 
                 SFMLWindow.DispatchEvents();
@@ -76,17 +93,11 @@ namespace GameJam
         {
             player = Object.Create<Player>();
             worldGenerator = WorldGenerator.instance;
-        }
-
-        public void UpdateObjects()
-        {
-            OnTick?.Invoke();
-        }
-
-        public void DrawObjects()
-        {
-            foreach (TextureObject o in objects.Reverse<Object>())
-                o.Draw();
+            //for (int x = 0; x < 100; x++)
+            //    objects.Add(Object.Create<Star>());
+            ground.Size = new Vector2f(Game.width, Game.height);
+            ground.Texture = new Texture("Nebulas/Nebula.png");
+            
         }
 
         public void DrawUI()
@@ -97,28 +108,17 @@ namespace GameJam
 
         public void DrawBackground()
         {
-            RectangleShape ground = new RectangleShape();
-            int tileSize = 5;
-            ground.Size = new Vector2f(tileSize, tileSize);
-            ValueNoise n = new ValueNoise();
-
-            Vector2i offset = new Vector2i((int)MathF.Floor(screenOffset.X), (int)MathF.Floor(screenOffset.Y));
-
-            for (int x = (int)MathF.Floor(screenOffset.X); x < width; x += tileSize)
-                for (int y = (int)MathF.Floor(screenOffset.Y); y < height; y += tileSize)
-                {
-                    byte color = (byte)(int)(255 * n.Get(new Vector2f((float)(x) / 100 + Game.gameTime, (float)(y) / 100 + Game.gameTime) ));
-                    ground.FillColor = new Color(color, color, color);
-                    //ground.Texture = floorTiles[r.Next(floorTiles.Count())];
-                    ground.Position = new Vector2f(x, y);
-                    //ground.Position -= new Vector2f(ground.Size.X * ground.Scale.X - 50, ground.Size.Y * ground.Scale.Y - 50) / 2 - screenOffset;
-                    SFMLWindow.Draw(ground);
-                }
+            for (int y = 0; y < 2; y++)
+            {
+                ground.Position = new Vector2f(0, (Game.gameTime * 10) % height - (height * y)) + Game.screenOffset;
+                SFMLWindow.Draw(ground);
+            }
         }
 
         public static void DestroyObject(Object o)
         {
             objects.Remove(o);
+            o.Destroy();
         }
     }
 

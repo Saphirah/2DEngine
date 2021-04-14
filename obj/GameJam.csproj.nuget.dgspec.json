@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Saphirah\\Desktop\\GameJam\\GameJam.csproj": {}
+    "C:\\Users\\Saphirah\\Documents\\2DEngine\\GameJam.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Saphirah\\Desktop\\GameJam\\GameJam.csproj": {
+    "C:\\Users\\Saphirah\\Documents\\2DEngine\\GameJam.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Saphirah\\Desktop\\GameJam\\GameJam.csproj",
+        "projectUniqueName": "C:\\Users\\Saphirah\\Documents\\2DEngine\\GameJam.csproj",
         "projectName": "GameJam",
-        "projectPath": "C:\\Users\\Saphirah\\Desktop\\GameJam\\GameJam.csproj",
+        "projectPath": "C:\\Users\\Saphirah\\Documents\\2DEngine\\GameJam.csproj",
         "packagesPath": "C:\\Users\\Saphirah\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Saphirah\\Desktop\\GameJam\\obj\\",
+        "outputPath": "C:\\Users\\Saphirah\\Documents\\2DEngine\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Saphirah\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -26,7 +26,6 @@
         },
         "frameworks": {
           "netcoreapp3.1": {
-            "targetAlias": "netcoreapp3.1",
             "projectReferences": {}
           }
         },
@@ -38,7 +37,6 @@
       },
       "frameworks": {
         "netcoreapp3.1": {
-          "targetAlias": "netcoreapp3.1",
           "dependencies": {
             "SFML.Net": {
               "target": "Package",
@@ -60,7 +58,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.201\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.301\\RuntimeIdentifierGraph.json"
         }
       }
     }

@@ -2,111 +2,146 @@
 using SFML.System;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace GameJam.Assets
 {
-    public enum CollisionType { None, Player, Entity, Environment }
+    public enum CollisionType { None, Player, Enemies, Environment }
 
-    public interface Collider
+    public abstract class CCollider : Component
     {
         public CollisionType collisionType { get; set; }
-        public Action<Collider> OnCollision { get; set; }
+        public Action<CCollider> OnCollision { get; set; }
 
-        public bool IsColliding();
-        public bool IsColliding(CollisionType ct);
-        public Collider GetCollidingObject();
-        public Collider GetCollidingObject(CollisionType ct);
-        public List<Object> GetCollidingObjects();
-        public List<Object> GetCollidingObjects(CollisionType ct);
-    }
-
-    public class BoxCollider : Collider
-    {
-        TextureObject Parent;
-
-        public Action<Collider> OnCollision { get; set; }
-        public CollisionType collisionType { get; set; }
-
-
-        public BoxCollider(TextureObject parent)
+        public List<CollisionType> collidingTypes 
         {
-            Parent = parent;
+            get 
+            {
+                switch (collisionType)
+                {
+                    case CollisionType.Enemies:
+                        return new List<CollisionType>() { CollisionType.Environment, CollisionType.Player };
+                    case CollisionType.Player:
+                        return new List<CollisionType>() { CollisionType.Environment, CollisionType.Enemies };
+                    case CollisionType.Environment:
+                         return new List<CollisionType>() { CollisionType.Environment, CollisionType.Enemies, CollisionType.Player };
+                    default:
+                        return new List<CollisionType>();
+                }
+            }
         }
 
+        public CCollider(Object parent) : base(parent) 
+        {
+            Game.OnTick += Update;
+        }
 
-        public bool IsColliding()
+        public override void Destroy()
+        {
+            Game.OnTick -= Update;
+        }
+
+        public void Update()
+        {
+            List<CCollider> colliders = GetCollidingObjects();
+
+            foreach(CCollider collider in colliders) {
+                OnCollision?.Invoke(collider);
+                collider.OnCollision?.Invoke(this);
+            }
+        }
+
+        public abstract bool IsColliding();
+        public abstract bool IsColliding(CollisionType ct);
+        public abstract CCollider GetCollidingObject();
+        public abstract CCollider GetCollidingObject(CollisionType ct);
+        public abstract List<CCollider> GetCollidingObjects();
+        public abstract List<CCollider> GetCollidingObjects(CollisionType ct);
+    }
+
+    public class CBoxCollider : CCollider
+    {
+        public CBoxCollider(Object parent) : base(parent) { }
+
+        public override bool IsColliding()
         {
             return GetCollidingObject() != null;
         }
 
-        public bool IsColliding(CollisionType ct)
+        public override bool IsColliding(CollisionType ct)
         {
             return GetCollidingObject(ct) != null;
         }
 
-        public Collider GetCollidingObject()
+        public override CCollider GetCollidingObject()
         {
-            FloatRect ownBounds = GetBoundingBox(Parent);
-            foreach (CollisionObject o in Game.objects)
-                if (o.collider != this)
-                {
-                    FloatRect otherBounds = GetBoundingBox(o);
-                    if (ownBounds.Intersects(otherBounds))
-                        return o.collider;
-                }
+            List<CollisionType> collidingTypes = this.collidingTypes;
+            FloatRect ownBounds = GetBoundingBox(parent);
+            foreach (Object o in Game.objects)
+                if (o != parent)
+                    foreach (CCollider c in o.components)
+                        if (collidingTypes.Contains(c.collisionType))
+                        {
+                            FloatRect otherBounds = GetBoundingBox(o);
+                            if (ownBounds.Intersects(otherBounds))
+                                return c;
+                        }
             return null;
         }
 
-        public Collider GetCollidingObject(CollisionType ct)
+        public override CCollider GetCollidingObject(CollisionType ct)
         {
-            FloatRect ownBounds = GetBoundingBox(Parent);
-            foreach (CollisionObject o in Game.objects)
-                if (o.collider != null)
-                    if (o.collider.collisionType == ct)
-                    {
-                        FloatRect otherBounds = GetBoundingBox(o);
-                        if (ownBounds.Intersects(otherBounds))
-                            return o.collider;
-                    }
+            FloatRect ownBounds = GetBoundingBox(parent);
+            foreach (Object o in Game.objects)
+                if(o != parent)
+                    foreach (CCollider c in o.components)
+                        if (c.collisionType == ct)
+                        {
+                            FloatRect otherBounds = GetBoundingBox((RectangleShape)o);
+                            if (ownBounds.Intersects(otherBounds))
+                                return c;
+                        }
             return null;
         }
 
-        public List<Object> GetCollidingObjects()
+        public override List<CCollider> GetCollidingObjects()
         {
-            List<Object> collidingObjects = new List<Object>();
-            FloatRect ownBounds = GetBoundingBox(Parent);
-            foreach (CollisionObject o in Game.objects)
-                if (o.collider != null)
-                {
-                    FloatRect otherBounds = GetBoundingBox(o);
-                    if (ownBounds.Intersects(otherBounds))
-                        collidingObjects.Add(o);
-                }
+            List<CCollider> collidingObjects = new List<CCollider>();
+            List<CollisionType> collidingTypes = this.collidingTypes;
+            FloatRect ownBounds = GetBoundingBox(parent);
+            foreach (Object o in Game.objects)
+                if (o != parent)
+                    foreach (CCollider c in o.GetComponents<CCollider>())
+                        if (collidingTypes.Contains(c.collisionType))
+                        {
+                            FloatRect otherBounds = GetBoundingBox(o);
+                            if (ownBounds.Intersects(otherBounds))
+                                collidingObjects.Add(c);
+                        }
             return collidingObjects;
         }
 
-        public List<Object> GetCollidingObjects(CollisionType ct)
+        public override List<CCollider> GetCollidingObjects(CollisionType ct)
         {
-            List<Object> collidingObjects = new List<Object>();
-            FloatRect ownBounds = GetBoundingBox(Parent);
-            foreach (CollisionObject o in Game.objects)
-                if (o.collider != null)
-                    if (o.collider.collisionType == ct)
-                    {
-                        FloatRect otherBounds = GetBoundingBox(o);
-                        if (ownBounds.Intersects(otherBounds))
-                            collidingObjects.Add(o);
-                    }
+            List<CCollider> collidingObjects = new List<CCollider>();
+            FloatRect ownBounds = GetBoundingBox(parent);
+            foreach (Object o in Game.objects)
+                if (o != parent)
+                    foreach (CCollider c in o.GetComponents<CCollider>())
+                        if (c.collisionType == ct)
+                        {
+                            FloatRect otherBounds = GetBoundingBox((RectangleShape)o);
+                            if (ownBounds.Intersects(otherBounds))
+                                collidingObjects.Add(c);
+                        }
             return collidingObjects;
         }
 
         public FloatRect GetBoundingBox(RectangleShape o)
         {
-            //o.Position -= new Vector2f(o.Size.X * o.Scale.X, o.Size.Y * o.Scale.Y) / 2;
-            FloatRect ownBounds = o.GetGlobalBounds();
-            //o.Position += new Vector2f(o.Size.X * o.Scale.X, o.Size.Y * o.Scale.Y) / 2;
-            return ownBounds;
+            return o.GetGlobalBounds();
         }
+
     }
 }
